@@ -7,9 +7,8 @@ namespace DatabaseLayer.Utils.Responses
 {
     public class ResponseBase<TEntity>
     {
-        public string Code { get; set; }
-        public bool IsSuccess => !ErrorMessages.Any();
+        public bool IsSuccess => string.IsNullOrEmpty(ErrorMessage);
         public TEntity Response { get; set; }
-        public List<string> ErrorMessages { get; set; }
+        public string ErrorMessage { get; set; }
     }
 }
