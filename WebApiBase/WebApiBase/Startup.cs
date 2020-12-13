@@ -11,6 +11,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using WebApiBase.Extensions;
 
 namespace WebApiBase
 {
@@ -27,6 +28,9 @@ namespace WebApiBase
         public void ConfigureServices(IServiceCollection services)
         {
 
+            services.ImplementDbContexts(Configuration);
+            services.ImplementServices();
+            services.ImplementAuthMapper();
             services.AddControllers();
             services.AddSwaggerGen(c =>
             {
@@ -41,7 +45,7 @@ namespace WebApiBase
             {
                 app.UseDeveloperExceptionPage();
                 app.UseSwagger();
-                app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "WebApiBase v1"));
+                app.UseSwaggerUI(c => { c.SwaggerEndpoint("/swagger/v1/swagger.json", "WebApiBase v1"); c.RoutePrefix = "documentation"; });
             }
 
             app.UseHttpsRedirection();

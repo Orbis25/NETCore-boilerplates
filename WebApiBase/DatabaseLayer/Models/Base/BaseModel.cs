@@ -13,5 +13,5 @@ namespace DatabaseLayer.Models.Base
         public string CreatedAtStr => CreatedAt.ToString("dd/MM/yyyyy");
         public string UpdateAtStr => CreatedAt.ToString("dd/MM/yyyyy");
         public State State { get; set; }
-    }
+     }
 }

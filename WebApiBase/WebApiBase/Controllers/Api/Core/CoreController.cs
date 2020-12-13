@@ -26,7 +26,7 @@ namespace WebApiBase.Controllers.Api.Core
         {
             var response = await _service.Create(inputModel);
             if (!response.IsSuccess) return BadRequest(response.ErrorMessage);
-            return CreatedAtAction(nameof(GetById), new { id = inputModel.Id }, inputModel);
+            return CreatedAtAction(nameof(GetById), new { id = inputModel.Id }, response.Response);
         }
 
         [HttpDelete("{id}")]
@@ -38,7 +38,7 @@ namespace WebApiBase.Controllers.Api.Core
         }
 
         [HttpGet]
-        public virtual async Task<IActionResult> GetAll(BasePaginated paginatedVM) => Ok(await _service.GetPaginatedList(paginatedVM));
+        public virtual async Task<IActionResult> GetAll([FromQuery]BasePaginated paginatedVM) => Ok(await _service.GetPaginatedList(paginatedVM));
 
         [HttpGet("{id}")]
         public virtual async Task<IActionResult> GetById(Guid id)
@@ -53,7 +53,7 @@ namespace WebApiBase.Controllers.Api.Core
         {
             var response = await _service.Update(inputModel);
             if (!response.IsSuccess) return BadRequest(response.ErrorMessage);
-            return Ok(inputModel);
+            return Ok(response.Response);
         }
     }
 }

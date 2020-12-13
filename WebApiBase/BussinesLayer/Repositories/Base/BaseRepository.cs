@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using AutoMapper.QueryableExtensions;
+using DatabaseLayer.Contexts;
 using DatabaseLayer.Enums.Base;
 using DatabaseLayer.Models.Base;
 using DatabaseLayer.Utils.Paginated;
@@ -47,9 +48,11 @@ namespace BussinesLayer.Repositories.Base
 
         public virtual async Task<ResponseBase<TEntityVM>> Create(TInputModel model)
         {
-            _context.Set<TEntity>().Add(_mapper.Map<TInputModel, TEntity>(model));
+            var _model = _mapper.Map<TInputModel, TEntity>(model);
+            _context.Set<TEntity>().Add(_model);
             return new ResponseBase<TEntityVM>
             {
+                Response = _mapper.Map<TEntity, TEntityVM>(_model),
                 ErrorMessage = await CommitAsync()
             };
         }
@@ -85,11 +88,21 @@ namespace BussinesLayer.Repositories.Base
 
         public async Task<ResponseBase<TEntityVM>> Update(TInputModel model)
         {
+            var exist = await _context.Set<TEntity>().AnyAsync(x => x.Id == model.Id);
+            if (!exist)
+            {
+                return new ResponseBase<TEntityVM>
+                {
+                    ErrorMessage = "Not exist"
+                };
+            }
+
             var _model = _mapper.Map<TInputModel, TEntity>(model);
             _model.UpdateAt = DateTime.Now;
-            _context.Set<TEntity>().Add(_model);
+            _context.Set<TEntity>().Update(_model);
             return new ResponseBase<TEntityVM>
             {
+                Response = _mapper.Map<TEntity, TEntityVM>(_model),
                 ErrorMessage = await CommitAsync()
             };
         }
