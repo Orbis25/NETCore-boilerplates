@@ -1,6 +1,10 @@
 ﻿using DatabaseLayer.Configurations.Persons;
+using DatabaseLayer.Models.Base;
 using DatabaseLayer.Models.Persons;
 using Microsoft.EntityFrameworkCore;
+using System;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace DatabaseLayer.Contexts
 {
@@ -17,6 +21,24 @@ namespace DatabaseLayer.Contexts
             builder.ApplyConfiguration(new PersonEFConfiguration());
         }
 
-        public DbSet<Person> Persons { get; set; }
+        public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+        {
+            foreach (var entity in ChangeTracker.Entries<BaseModel>())
+            {
+                switch (entity.State)
+                {
+                    case EntityState.Modified:
+                        entity.Entity.UpdateAt = DateTime.Now;
+                        break;
+                    case EntityState.Added:
+                        entity.Entity.CreatedAt = DateTime.Now;
+                        break;
+                }
+            }
+
+            return base.SaveChangesAsync(cancellationToken);
+        }
+
+        public virtual DbSet<Person> Persons { get; set; }
     }
 }

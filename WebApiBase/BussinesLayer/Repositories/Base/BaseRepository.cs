@@ -1,7 +1,5 @@
 ﻿using AutoMapper;
 using AutoMapper.QueryableExtensions;
-using DatabaseLayer.Contexts;
-using DatabaseLayer.Enums.Base;
 using DatabaseLayer.Models.Base;
 using DatabaseLayer.Utils.Paginated;
 using DatabaseLayer.Utils.Responses;
@@ -57,18 +55,30 @@ namespace BussinesLayer.Repositories.Base
             };
         }
 
-        public IQueryable<TEntityVM> GetAll(Expression<Func<TEntityVM, bool>> expression = null, params Expression<Func<TEntityVM, object>>[] includes)
+        public virtual IQueryable<TEntityVM> GetAll(Expression<Func<TEntityVM, bool>> expression = null,
+            bool orderDesc = true, Expression<Func<TEntityVM, object>> ordered = null
+            , params Expression<Func<TEntityVM, object>>[] includes)
         {
             var results = _context.Set<TEntity>().ProjectTo<TEntityVM>(_mapper.ConfigurationProvider);
             if (expression != null)
                 results = results.Where(expression);
             foreach (var include in includes) results = results.Include(include);
-            return results;
+
+            ///Order elements desc or asc
+            if (ordered != null && orderDesc) results = results.OrderByDescending(ordered);
+            if (!orderDesc && ordered != null) results = results.OrderBy(ordered);
+            if (orderDesc) results = results.OrderByDescending(x => x.CreatedAt);
+            else results = results.OrderBy(x => x.CreatedAt);
+            return results.AsNoTracking();
         }
 
-        public async Task<BasePaginationResult<TEntityVM>> GetPaginatedList(BasePaginated paginatedModel, Expression<Func<TEntityVM, bool>> expression = null, params Expression<Func<TEntityVM, object>>[] includes)
+        public virtual async Task<BasePaginationResult<TEntityVM>>  GetPaginatedList(BasePaginated paginatedModel, 
+            Expression<Func<TEntityVM, bool>> expression = null,
+            bool orderDesc = true, 
+            Expression<Func<TEntityVM, object>> ordered = null,
+            params Expression<Func<TEntityVM, object>>[] includes)
         {
-            var results = GetAll(expression, includes);
+            var results = GetAll(expression,orderDesc,ordered, includes);
             var total = results.Count();
             var pages = total / paginatedModel.Qyt;
             results = results.Take(paginatedModel.Qyt).Skip((paginatedModel.Page - 1) * paginatedModel.Qyt);
@@ -83,10 +93,13 @@ namespace BussinesLayer.Repositories.Base
 
         }
 
-        public async Task<IEnumerable<TEntityVM>> GetList(Expression<Func<TEntityVM, bool>> expression = null, params Expression<Func<TEntityVM, object>>[] includes)
-            => await GetAll(expression, includes).ToListAsync();
+        public virtual async Task<IEnumerable<TEntityVM>> GetList(Expression<Func<TEntityVM, bool>> expression = null,
+            bool orderDesc = true,
+            Expression<Func<TEntityVM, object>> ordered = null,
+            params Expression<Func<TEntityVM, object>>[] includes)
+            => await GetAll(expression, orderDesc, ordered, includes).ToListAsync();
 
-        public async Task<ResponseBase<TEntityVM>> Update(TInputModel model)
+        public virtual async Task<ResponseBase<TEntityVM>> Update(TInputModel model)
         {
             var exist = await _context.Set<TEntity>().AnyAsync(x => x.Id == model.Id);
             if (!exist)
@@ -98,7 +111,6 @@ namespace BussinesLayer.Repositories.Base
             }
 
             var _model = _mapper.Map<TInputModel, TEntity>(model);
-            _model.UpdateAt = DateTime.Now;
             _context.Set<TEntity>().Update(_model);
             return new ResponseBase<TEntityVM>
             {
@@ -107,13 +119,17 @@ namespace BussinesLayer.Repositories.Base
             };
         }
 
-        public async Task<TEntityVM> GetById(Guid id, params Expression<Func<TEntityVM, object>>[] includes)
-            => await GetAll(null, includes).FirstOrDefaultAsync(x => x.Id == id);
-
-        public async Task<ResponseBase<bool>> SoftRemove(Guid id)
+        public virtual async Task<TEntityVM> GetById(Guid id,bool asNotTraking = false, params Expression<Func<TEntityVM, object>>[] includes)
         {
-            var entity = _mapper.Map<TEntityVM,TEntity>(await GetById(id));
-            entity.State = State.Removed;
+            var results = GetAll(null, true, x => x.CreatedAt, includes);
+            if (asNotTraking) results = results.AsNoTracking();
+            return await results.FirstOrDefaultAsync(x => x.Id == id);
+        }
+
+        public virtual async Task<ResponseBase<bool>> SoftRemove(Guid id)
+        {
+            var entity = _mapper.Map<TEntityVM, TEntity>(await GetById(id));
+            entity.IsDeleted = true;
             _context.Set<TEntity>().Update(entity);
             return new ResponseBase<bool>
             {
@@ -121,7 +137,7 @@ namespace BussinesLayer.Repositories.Base
             };
         }
 
-        public async Task<ResponseBase<bool>> Remove(Guid id)
+        public virtual async Task<ResponseBase<bool>> Remove(Guid id)
         {
             var entity = _mapper.Map<TEntityVM, TEntity>(await GetById(id));
             _context.Set<TEntity>().Remove(entity);
@@ -129,6 +145,22 @@ namespace BussinesLayer.Repositories.Base
             {
                 ErrorMessage = await CommitAsync()
             };
+        }
+
+        public virtual async Task<bool> Exist(Guid id) => await GetById(id, true) != null; 
+
+        public async Task<int> Count(params Expression<Func<TEntityVM, bool>>[] expression)
+        {
+            var result = _context.Set<TEntity>().ProjectTo<TEntityVM>(_mapper.ConfigurationProvider)
+                .AsQueryable();
+            foreach (var item in expression) result = result.Where(item);
+            return await result.CountAsync();
+        }
+
+        public async Task<bool> Exist(Expression<Func<TEntityVM, bool>> expression)
+        {
+            var result = _context.Set<TEntity>().ProjectTo<TEntityVM>(_mapper.ConfigurationProvider);
+            return await result.AnyAsync(expression);
         }
     }
 }

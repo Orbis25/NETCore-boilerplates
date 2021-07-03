@@ -13,7 +13,11 @@ namespace WebApiBase.Extensions
     {
         public static void ImplementDbContexts(this IServiceCollection services, IConfiguration configuration)
         {
-            services.AddDbContext<ApplicationDbContext>(x => x.UseSqlServer(configuration.GetConnectionString("SqlServer")));
+            ///SQLSERVER
+            //services.AddDbContext<ApplicationDbContext>(x => x.UseSqlServer(configuration.GetConnectionString("SqlServer")));
+           
+            ///postgress
+            services.AddDbContext<ApplicationDbContext>(x => x.UseNpgsql(configuration.GetConnectionString("postgres")));
         }
 
         public static void ImplementServices(this IServiceCollection services)

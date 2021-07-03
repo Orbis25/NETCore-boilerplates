@@ -1,9 +1,6 @@
 ﻿using DatabaseLayer.Models.Base;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace DatabaseLayer.Configurations.Base
 {
@@ -12,7 +9,7 @@ namespace DatabaseLayer.Configurations.Base
     {
         public void Configure(EntityTypeBuilder<TEntity> builder)
         {
-            builder.HasQueryFilter(x => x.State != Enums.Base.State.Removed);
+            builder.HasQueryFilter(x => !x.IsDeleted);
             ConfigureEF(builder);
         }
 
