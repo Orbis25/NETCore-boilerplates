@@ -22,13 +22,14 @@ namespace WebApiBase.Test.TestedServices
         protected override void Initialize()
         {
            
+            //assert
             var database = new ApplicationDbContext(GetDbOptions());
             database.Persons.AddRange(GetFakeDataList());
             database.SaveChanges();
-
+            //arange
             var profiles = new List<Profile> { new CommonMapping() };
             var mapper = SetUpMapper(profiles.ToArray());
-
+            //act
             _service = new PersonService(database, mapper);
         }
 
