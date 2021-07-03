@@ -1,0 +1,40 @@
+using AutoMapper;
+using BussinesLayer.Services.Persons;
+using DatabaseLayer.Contexts;
+using DatabaseLayer.Mappings.Base;
+using DatabaseLayer.Models.Persons;
+using DatabaseLayer.ViewModels.Inputs.Person;
+using DatabaseLayer.ViewModels.VM.Person;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System.Collections.Generic;
+using WebApiBase.Test.BaseConfiguration;
+
+namespace WebApiBase.Test.TestedServices
+{
+    [TestClass]
+    public class PersonTest : CoreTest<ApplicationDbContext,Person,PersonInput,PersonVM>
+    {
+        public PersonTest()
+        {
+            Initialize();
+        }
+
+        protected override void Initialize()
+        {
+           
+            var database = new ApplicationDbContext(GetDbOptions());
+            database.Persons.AddRange(GetFakeDataList());
+            database.SaveChanges();
+
+            var profiles = new List<Profile> { new CommonMapping() };
+            var mapper = SetUpMapper(profiles.ToArray());
+
+            _service = new PersonService(database, mapper);
+        }
+
+      
+       
+
+     
+    }
+}

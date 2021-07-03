@@ -29,6 +29,7 @@ namespace BussinesLayer.Repositories.Base
 
         private async Task<string> CommitAsync()
         {
+
             string err = string.Empty;
             using var transaction = _context.Database.BeginTransaction();
             try
@@ -72,13 +73,13 @@ namespace BussinesLayer.Repositories.Base
             return results.AsNoTracking();
         }
 
-        public virtual async Task<BasePaginationResult<TEntityVM>>  GetPaginatedList(BasePaginated paginatedModel, 
+        public virtual async Task<BasePaginationResult<TEntityVM>> GetPaginatedList(BasePaginated paginatedModel,
             Expression<Func<TEntityVM, bool>> expression = null,
-            bool orderDesc = true, 
+            bool orderDesc = true,
             Expression<Func<TEntityVM, object>> ordered = null,
             params Expression<Func<TEntityVM, object>>[] includes)
         {
-            var results = GetAll(expression,orderDesc,ordered, includes);
+            var results = GetAll(expression, orderDesc, ordered, includes);
             var total = results.Count();
             var pages = total / paginatedModel.Qyt;
             results = results.Take(paginatedModel.Qyt).Skip((paginatedModel.Page - 1) * paginatedModel.Qyt);
@@ -101,7 +102,7 @@ namespace BussinesLayer.Repositories.Base
 
         public virtual async Task<ResponseBase<TEntityVM>> Update(TInputModel model)
         {
-            var exist = await _context.Set<TEntity>().AnyAsync(x => x.Id == model.Id);
+            var exist = await Exist(model.Id);
             if (!exist)
             {
                 return new ResponseBase<TEntityVM>
@@ -119,7 +120,7 @@ namespace BussinesLayer.Repositories.Base
             };
         }
 
-        public virtual async Task<TEntityVM> GetById(Guid id,bool asNotTraking = false, params Expression<Func<TEntityVM, object>>[] includes)
+        public virtual async Task<TEntityVM> GetById(Guid id, bool asNotTraking = false, params Expression<Func<TEntityVM, object>>[] includes)
         {
             var results = GetAll(null, true, x => x.CreatedAt, includes);
             if (asNotTraking) results = results.AsNoTracking();
@@ -129,25 +130,40 @@ namespace BussinesLayer.Repositories.Base
         public virtual async Task<ResponseBase<bool>> SoftRemove(Guid id)
         {
             var entity = _mapper.Map<TEntityVM, TEntity>(await GetById(id));
-            entity.IsDeleted = true;
-            _context.Set<TEntity>().Update(entity);
+            if (entity != null)
+            {
+                entity.IsDeleted = true;
+                _context.Set<TEntity>().Update(entity);
+                return new ResponseBase<bool>
+                {
+                    ErrorMessage = await CommitAsync()
+                };
+            }
             return new ResponseBase<bool>
             {
-                ErrorMessage = await CommitAsync()
+                ErrorMessage = "not found"
             };
         }
 
         public virtual async Task<ResponseBase<bool>> Remove(Guid id)
         {
             var entity = _mapper.Map<TEntityVM, TEntity>(await GetById(id));
-            _context.Set<TEntity>().Remove(entity);
+            if (entity != null)
+            {
+                _context.Set<TEntity>().Remove(entity);
+                return new ResponseBase<bool>
+                {
+                    ErrorMessage = await CommitAsync()
+                };
+            }
+
             return new ResponseBase<bool>
             {
-                ErrorMessage = await CommitAsync()
+                ErrorMessage = "Not found"
             };
         }
 
-        public virtual async Task<bool> Exist(Guid id) => await GetById(id, true) != null; 
+        public virtual async Task<bool> Exist(Guid id) => await GetById(id, true) != null;
 
         public async Task<int> Count(params Expression<Func<TEntityVM, bool>>[] expression)
         {
